@@ -1,22 +1,32 @@
 'use client';
 
-import { usePathname, redirect } from 'next/navigation';
-import Home from './page';
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import Sidebar from '@/components/Sidebar';
 
-export default function ClientLayout({ session, children }: { session: any, children: React.ReactNode }) {
-  const pathname = usePathname();
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { data: session, status } = useSession();
+  
+  // Don't show sidebar during loading state or when not authenticated
+  const showSidebar = status === 'authenticated' && session;
 
-  const publicPages = ['/signin', '/signup', '/forgot-password'];
-
-  if (!session && !publicPages.includes(pathname)) {
-    redirect('/signin'); // Redirect to sign-in page if there's no session and the current page is not public
-    return null; // Ensure nothing is rendered while redirecting
+  // Only redirect from protected pages
+  if (status === 'unauthenticated' && 
+      !window.location.pathname.startsWith('/signin') && 
+      !window.location.pathname.startsWith('/signup')) {
+    redirect('/signin');
   }
 
   return (
-    <>
-      {children}
-      {session && pathname === '/' && <Home />}
-    </>
+    <div className="flex min-h-screen">
+      {showSidebar && <Sidebar />}
+      <main className={`${showSidebar ? 'flex-1' : 'w-full'}`}>
+        {children}
+      </main>
+    </div>
   );
 }
